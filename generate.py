@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 DEFAULT_OUTPUT = ROOT / "NoIntrusiveScopes.txt"
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 CREDIT = "ancent"
 
 DUMP_FILES = {
@@ -48,7 +48,8 @@ FAMILY_NAMES = {
     "Sniper": "Sniper Rifles",
     "RL": "Launchers",
 }
-FAMILY_ORDER = ["Pistol", "AR", "SG", "SMG", "Sniper", "RL"]
+# Category order follows the insertion order of FAMILY_NAMES.
+FAMILY_ORDER = list(FAMILY_NAMES)
 
 # Fremington's Edge's 25x scope is the weapon's identity.
 EXEMPT = "FremingtonsEdge"
@@ -68,6 +69,14 @@ def fail(message):
 # --- dumps -----------------------------------------------------------------
 
 
+def _read_dump_lines(path):
+    try:
+        with lzma.open(path, "rt", encoding="utf-8") as handle:
+            yield from handle
+    except UnicodeDecodeError as exc:
+        fail(f"{path}: not valid UTF-8 ({exc})")
+
+
 def load_dump(path):
     """Read one property dump. Fail on anything that would silently lose data."""
     path = Path(path)
@@ -76,29 +85,28 @@ def load_dump(path):
     blocks = {}
     current = None
     current_name = ""
-    with lzma.open(path, "rt", encoding="utf-8", errors="replace") as handle:
-        for number, line in enumerate(handle, 1):
-            line = line.rstrip("\n")
-            match = BLOCK_RE.match(line)
-            if match:
-                current_name = match.group(2)
-                if current_name in blocks:
-                    fail(f"{path}:{number}: duplicate block {current_name}")
-                current = {}
-                blocks[current_name] = current
-                continue
-            if current is None or not line.strip():
-                continue
-            if line.strip().startswith("==="):
-                continue
-            if not line.startswith("  ") or "=" not in line:
-                fail(f"{path}:{number}: unsupported dump line in {current_name}")
-            key, _, value = line.strip().partition("=")
-            if key in current:
-                fail(f"{path}:{number}: duplicate property {key} in {current_name}")
-            if value.count("(") != value.count(")"):
-                fail(f"{path}:{number}: truncated value for {key} in {current_name}")
-            current[key] = value
+    for number, line in enumerate(_read_dump_lines(path), 1):
+        line = line.rstrip("\n")
+        match = BLOCK_RE.match(line)
+        if match:
+            current_name = match.group(2)
+            if current_name in blocks:
+                fail(f"{path}:{number}: duplicate block {current_name}")
+            current = {}
+            blocks[current_name] = current
+            continue
+        if current is None or not line.strip():
+            continue
+        if line.strip().startswith("==="):
+            continue
+        if not line.startswith("  ") or "=" not in line:
+            fail(f"{path}:{number}: unsupported dump line in {current_name}")
+        key, _, value = line.strip().partition("=")
+        if key in current:
+            fail(f"{path}:{number}: duplicate property {key} in {current_name}")
+        if value.count("(") != value.count(")"):
+            fail(f"{path}:{number}: truncated value for {key} in {current_name}")
+        current[key] = value
     return blocks
 
 
@@ -119,19 +127,28 @@ def runtime_refs(balances):
 def _split_entries(text):
     """Split a WeightedParts value into top-level entry tuples."""
     entries = []
+    outside = []
     depth = 0
     start = None
+    segment_start = 0
     for index, char in enumerate(text):
         if char == "(":
             if depth == 0:
+                outside.append(text[segment_start:index])
                 start = index
             depth += 1
         elif char == ")":
             depth -= 1
+            if depth < 0:
+                fail("unbalanced parentheses in SightPartData")
             if depth == 0:
                 entries.append(text[start:index + 1])
+                segment_start = index + 1
     if depth != 0:
         fail("unbalanced parentheses in SightPartData")
+    outside.append(text[segment_start:])
+    if any(part.strip(" \t\r\n,") for part in outside):
+        fail("unexpected text outside SightPartData entries")
     return entries
 
 
@@ -329,7 +346,7 @@ class Plan:
     policy: RangePolicy
 
 
-def plan_list(path, props, scoped, known_parts, policy=STRICT):
+def plan_list(path, props, scoped, known_parts, policy=CONSERVATIVE):
     """Turn one runtime list into an override, or a named skip reason."""
     sight_data = SightData.parse(props.get("SightPartData"), path)
     parts = sight_data.parts
@@ -357,7 +374,7 @@ def plan_list(path, props, scoped, known_parts, policy=STRICT):
         for entry in sight_data.entries
         if entry.part in scoped
     ):
-        fail(f"{path}: scoped sight was not disabled")
+        fail(f"{path}: scoped sight was not level-limited")
 
     has_full_range_nonscoped = any(
         entry.part not in scoped and entry.stage_range() == (caid_one, caid_hundred)
@@ -382,7 +399,7 @@ def plan_list(path, props, scoped, known_parts, policy=STRICT):
     return Outcome(Override(path, family, sight_data, added_stock))
 
 
-def build_plan(policy=STRICT):
+def build_plan(policy=CONSERVATIVE):
     parts = load_dump(DATA_DIR / DUMP_FILES["parts"])
     lists = load_dump(DATA_DIR / DUMP_FILES["lists"])
     balances = load_dump(DATA_DIR / DUMP_FILES["balances"])
@@ -428,7 +445,7 @@ def render_patch(plan):
 
     range_comment = (
         "\t\t\t<comment>Strict inverted stage range is untested in-game. Back up saves first; see the README for the conservative fallback.</comment>"
-        if plan.policy.name == "strict"
+        if plan.policy is STRICT
         else "\t\t\t<comment>Conservative stage range uses the UCP-proven level-1 pattern.</comment>"
     )
     lines = [
@@ -474,12 +491,14 @@ def render_patch(plan):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", nargs="?", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--policy", choices=sorted(POLICIES), default=STRICT.name)
+    parser.add_argument("--policy", choices=sorted(POLICIES), default=CONSERVATIVE.name)
     args = parser.parse_args(argv)
 
     plan = build_plan(POLICIES[args.policy])
     patch = render_patch(plan)
-    args.output.write_text(patch, encoding="utf-8")
+    tmp = args.output.with_name(args.output.name + ".tmp")
+    tmp.write_text(patch, encoding="utf-8", newline="\n")
+    tmp.replace(args.output)
     print(
         f"wrote {args.output} "
         f"({len(plan.overrides)} of {len(plan.runtime)} runtime sight lists changed)"

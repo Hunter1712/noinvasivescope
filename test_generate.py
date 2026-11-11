@@ -25,6 +25,7 @@ AMIGO = "GD_Anemone_Weapons.A_Weapons_Unique.Sniper_Jakobs_3_Morde_Lt:WeaponPart
 OVERCOMP = "GD_Anemone_Weapons.Shotgun.Overcompensator.SG_Hyperion_6_Overcompensator:WeaponPartListCollectionDefinition_237"
 CHAUD = "GD_Anemone_Weapons.sniper.Sniper_Jakobs_6_Chaude_Mama:WeaponPartListCollectionDefinition_234"
 ODD = "GD_Aster_Weapons.SMGs.SMG_Maliwan_3_Crit:WeaponPartListCollectionDefinition_244"
+NORMAL = "GD_Weap_Pistol.A_Weapons.Pistol_Bandit_2_Uncommon:WeaponPartListCollectionDefinition_13"
 FREM = "GD_Weap_SniperRifles.A_Weapons_Unique.Sniper_Hyperion_3_FremingtonsEdge:WeaponPartListCollectionDefinition_209"
 MISSING = [
     "GD_Anemone_Weapons.A_Weapons.AR_Bandit_3_Rare_Alien_Shock:WeaponPartListCollectionDefinition_337",
@@ -189,6 +190,9 @@ class NoIntrusiveScopesTest(unittest.TestCase):
             "NoIntrusiveScopes.txt is stale; run generate.py",
         )
         self.assertEqual(self.first.read_bytes(), self.second.read_bytes())
+        self.assertIn("Conservative stage range", self.text)
+        self.assertNotIn("Strict inverted stage range is untested", self.text)
+        self.assertNotIn(b"\r\n", self.first.read_bytes())
 
     def test_counts_match_independent_expectation(self):
         expect = self.expect
@@ -265,7 +269,11 @@ class NoIntrusiveScopesTest(unittest.TestCase):
                 for source, written in zip(originals, outputs_by_key[key]):
                     part = source.part
                     if part in expect.scoped:
-                        self.assertEqual(written.stage_range(), (caid_hundred, caid_one), path)
+                        self.assertEqual(
+                            written.stage_range(),
+                            (source.stage_range()[0], caid_one),
+                            path,
+                        )
                     else:
                         original_nonscoped.append(written)
                         if part.rsplit(".", 1)[-1].endswith("_None"):
@@ -319,9 +327,13 @@ class NoIntrusiveScopesTest(unittest.TestCase):
         self.assertEqual(gen.caid_index(props, 100.0, ODD), 3)
         for written in gen.SightData.parse(self.commands[ODD], ODD).entries:
             if written.part in self.expect.scoped:
-                self.assertEqual(written.stage_range(), (3, 2))
+                self.assertEqual(written.stage_range(), (2, 2))
             else:
                 self.assertEqual(written.stage_range(), (2, 3))
+
+        for written in gen.SightData.parse(self.commands[NORMAL], NORMAL).entries:
+            if written.part in self.expect.scoped:
+                self.assertEqual(written.stage_range(), (0, 0))
 
 
 class SightDataTest(unittest.TestCase):
@@ -341,6 +353,14 @@ class SightDataTest(unittest.TestCase):
     def test_unbalanced_entries_fail(self):
         with self.assertRaises(SystemExit):
             gen.SightData.parse("(bEnabled=True,WeightedParts=((Part=x)", "fixture")
+
+    def test_top_level_junk_fails(self):
+        for value in (
+            sight("junk"),
+            sight(f"junk,{entry(SCOPED_PART, 0, 1)}"),
+        ):
+            with self.assertRaises(SystemExit):
+                gen.SightData.parse(value, "fixture")
 
     def test_non_property_value_fails(self):
         with self.assertRaises(SystemExit):
@@ -384,6 +404,14 @@ class DumpReaderTest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             gen.load_dump(Path(self.tmp.name) / "absent.dump.xz")
 
+    def test_invalid_utf8_fails(self):
+        path = Path(self.tmp.name) / "bad.dump.xz"
+        with lzma.open(path, "wb") as handle:
+            handle.write(b"\xff\n")
+        with self.assertRaises(SystemExit) as raised:
+            gen.load_dump(path)
+        self.assertIn("not valid UTF-8", str(raised.exception))
+
 
 class RuntimeRefsTest(unittest.TestCase):
     def test_returns_sorted_unique_refs(self):
@@ -413,6 +441,7 @@ class PlanningTest(unittest.TestCase):
             props_for(sight(entry(SCOPED_PART, 5, 7))),
             {SCOPED_PART},
             self.known,
+            gen.STRICT,
         )
         override = outcome.override
         self.assertIsNotNone(override)
@@ -473,6 +502,7 @@ class PlanningTest(unittest.TestCase):
 
     def test_build_plan_exposes_skip_reasons(self):
         plan = gen.build_plan()
+        self.assertIs(plan.policy, gen.CONSERVATIVE)
         self.assertEqual(len(plan.runtime), 360)
         self.assertEqual(len(plan.overrides), 306)
         reasons = {skip.path: skip.reason for skip in plan.skips}
@@ -491,7 +521,10 @@ class PolicyTest(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.strict_path = Path(cls.tmp.name) / "strict.txt"
         cls.conservative_path = Path(cls.tmp.name) / "conservative.txt"
-        subprocess.run([sys.executable, str(GENERATOR), str(cls.strict_path)], check=True)
+        subprocess.run(
+            [sys.executable, str(GENERATOR), "--policy", "strict", str(cls.strict_path)],
+            check=True,
+        )
         subprocess.run(
             [sys.executable, str(GENERATOR), "--policy", "conservative", str(cls.conservative_path)],
             check=True,
@@ -527,6 +560,14 @@ class PolicyTest(unittest.TestCase):
                     self.assertEqual(entry.stage_range(), (caid_one, caid_one), path)
                     scoped_entries += 1
         self.assertGreater(scoped_entries, 0)
+
+    def test_strict_policy_uses_hardcoded_normal_indices(self):
+        props = self.expect.lists[NORMAL]
+        self.assertEqual(gen.caid_index(props, 1.0, NORMAL), 0)
+        self.assertEqual(gen.caid_index(props, 100.0, NORMAL), 1)
+        for entry in gen.SightData.parse(self.strict[NORMAL], NORMAL).entries:
+            if entry.part in self.expect.scoped:
+                self.assertEqual(entry.stage_range(), (1, 0), NORMAL)
 
 
 if __name__ == "__main__":

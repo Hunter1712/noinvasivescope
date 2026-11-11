@@ -35,7 +35,7 @@ A deterministic generator produces the 300-plus overrides from a vendored, pinne
 15. As a player, I want clear load-order guidance, so UCP and this mod coexist without surprise overrides.
 16. As a player, I want a simple install and uninstall flow — copy the patch, enable or disable it in the mods menu — so I do not need to edit game files.
 17. As a player, I want a README that explains the save-safety risk and recommends backing up saves, so I do not lose gear.
-18. As a player, I want the README to name the untested strict disable method and the conservative fallback, so I can recover if something goes wrong.
+18. As a player, I want the README to name the conservative default and the untested strict method, so I can choose the right risk.
 19. As a player, I want the README to list known gaps — the six missing runtime lists, the two skipped runtime lists, existing guns, and Fremington's Edge — so there are no surprises.
 20. As a player, I want the mod to be a standard BLCMM file I can open and inspect, so I can see exactly what it changes.
 21. As a player, I want the patch grouped and labeled clearly in the BLCMM interface, so I can find and audit it.
@@ -44,7 +44,7 @@ A deterministic generator produces the 300-plus overrides from a vendored, pinne
 24. As a player, I want launchers left alone unless they actually contain scoped sights, so the patch makes no unnecessary changes.
 25. As a player, I want already-scopeless pools untouched, so the patch stays minimal and focused.
 26. As a player, I want the strict inverted-range disable documented as untested, so I understand the risk before installing.
-27. As a player, I want a conservative fallback pattern documented, so I can switch methods if guns disappear or behave oddly.
+27. As a player, I want the conservative default documented, so I understand its level-1 limitation.
 28. As a player, I want no game launch or save modification as part of delivery, so my install and saves stay untouched.
 29. As a player, I want the mod to affect only new generation, so my existing inventory remains stable.
 30. As a player, I want old scoped parts to stay listed but disabled, so saved guns that reference them survive the sanity check.
@@ -60,7 +60,7 @@ A deterministic generator produces the 300-plus overrides from a vendored, pinne
 40. As a maintainer, I want the generator to preserve every existing sight entry, so the save sanity check continues to pass.
 41. As a maintainer, I want the generator to verify that scoped entries are disabled and non-scoped coverage exists, so mistakes fail loudly.
 42. As a maintainer, I want the generator to leave exempt and missing lists untouched, so safe gaps stay safe.
-43. As a maintainer, I want the generator to determine CAID indices per list, so the strict range works even for lists with nonstandard index positions.
+43. As a maintainer, I want the generator to determine CAID indices per list, so the stage ranges work even for lists with nonstandard index positions.
 44. As a maintainer, I want the generator to add or normalize only the correct stock no-sight part for each weapon family, so no cross-family sights appear.
 45. As a maintainer, I want the generator to handle the one odd list with CAID indices 2 and 3, so it does not assume 0 and 1.
 46. As a maintainer, I want the generator's output deterministic, so regeneration produces stable diffs.
@@ -78,22 +78,22 @@ A deterministic generator produces the 300-plus overrides from a vendored, pinne
 - **Classification:** of the 354 present lists, 347 have at least one non-`None` sight. Forty are fixed single-sight lists; 307 are random pools. Seven have no non-`None` sight (three disabled, four enabled-but-empty) and are left alone.
 - **Sight classification:** a sight is scoped when its `WeaponPartDefinition.bScoped` is true. The dumps contain 13 non-scoped `WP_Sight` parts, plus the anomalously typed `SMG_Sight_None` (`WP_Stock`), and 6 stock `_None` parts.
 - **Transform:** for each runtime list containing at least one scoped sight, replace the whole `SightPartData` property with a new array that preserves every original entry. No entry is ever removed; this keeps the save sanity check satisfied for existing guns.
-- **Strict disable:** every original scoped entry keeps its part, manufacturer, and weight fields but gets `MinGameStageIndex` pointing at the list's CAID value 100 and `MaxGameStageIndex` pointing at the list's CAID value 1, producing an empty stage range at every level. This is a deliberate, untested choice; the README documents the conservative alternative. The generator can emit that alternative with `--policy conservative`: it keeps each scoped entry's existing minimum and sets `MaxGameStageIndex` to the list's CAID value 1.
+- **Conservative disable (default):** every original scoped entry keeps its part, manufacturer, and weight fields, keeps its existing `MinGameStageIndex`, and gets `MaxGameStageIndex` pointing at the list's CAID value 1. This is the UCP-proven pattern and leaves a tiny level-1 loophole. The generator emits it by default. `--policy strict` emits the experimental alternative: it points `MinGameStageIndex` at the list's CAID value 100 and `MaxGameStageIndex` at the list's CAID value 1, producing an empty stage range at every level. The strict range is logically sound but untested in-game.
 - **CAID handling:** indices are discovered per list by scanning `ConsolidatedAttributeInitData`. 353 lists use indices 0 and 1; one list uses 2 and 3. If either value is absent, generation fails loudly.
 - **Non-scoped coverage:** every edited list must contain at least one non-scoped option with a full stage range. Existing non-scoped entries are kept unchanged. An existing stock `_None` entry is normalized to the full range. If absent, one is added using the correct family part: pistol, assault rifle, shotgun, or SMG `Sight_None`; `Sniper_Sight_None_Buffalo` for sniper rifles. `Part=None` is not used in sight slots because no stock list uses it there.
 - **Fixed lists:** three fixed-scope named weapons are converted with the same transform — Amigo Sincero (generic Jakobs scope), Overcompensator (generic Hyperion scope), and Chaude Mama (generic Maliwan scope). Fremington's Edge is excluded because its 25× scope is a unique gimmick part.
 - **Left untouched:** the six missing runtime lists, the two runtime lists that cannot be resolved at text-mod execution time, the seven no-sight lists, the two pools with no scoped sights, fixed non-scoped named sights (Toothpick, SwordSplosion), and the three already-scopeless sniper uniques (Buffalo, Longbow, Elephant Gun).
 - **Part definitions are not edited.** No changes to `bScoped`, scope meshes, zoom FOV, reticles, or other part-property values. Therefore existing guns keep their scopes and other mods that touch part definitions are unaffected.
 - **BLCMM format:** a v1 file with BL2/offline type, default profile, a clearly named category with explanatory comments, `<code>` entries for GUI inspection, and a flat `#Commands:` section that the text mod loader executes. Both representations are generated from the same data so they cannot drift. No `#Hotfixes:` section is produced.
-- **Versioning and credit:** version 1.0.0; header credit "ancent".
+- **Versioning and credit:** version 1.1.0; header credit "ancent".
 - **Determinism:** target lists, entries, and output lines are emitted in stable sorted order.
 - **No game interaction:** the delivery does not install into the game, launch it, or touch saves.
 - **Test seams:** the generator command line for end-to-end patch behavior, plus the public interfaces of the sight-data, dump-reader and planning modules for format, validation and policy behavior. The generated patch's byte identity remains the end-to-end guard.
 
-Trimmed entry shape that encodes the strict-disable decision (from the dump format):
+Trimmed entry shape that encodes the default conservative decision (from the dump format):
 
 ```
-(Part=WeaponPartDefinition'...', Manufacturers=, MinGameStageIndex=<index of 100>, MaxGameStageIndex=<index of 1>, DefaultWeightIndex=...)
+(Part=WeaponPartDefinition'...', Manufacturers=, MinGameStageIndex=<original>, MaxGameStageIndex=<index of 1>, DefaultWeightIndex=...)
 ```
 
 ## Testing Decisions
@@ -105,7 +105,7 @@ Trimmed entry shape that encodes the strict-disable decision (from the dump form
   - The generator exits successfully and writes the patch.
   - The number of edited runtime lists matches an independently derived expectation (303 random pools plus 3 fixed named weapons).
   - Every original sight entry in every edited list is still present.
-  - Every original scoped entry is disabled with the inverted range, using the correct CAID indices for that list.
+  - Every original scoped entry is level-limited with the conservative range, using the correct CAID indices for that list. The strict range is covered by a separate policy test.
   - Every edited list has at least one full-range non-scoped option, using the correct family stock part.
   - No edit is emitted for the six missing lists, the two runtime lists that cannot be resolved at text-mod execution time, the seven no-sight lists, the two already-scopeless pools, or Fremington's Edge.
   - No `Part=None` appears inside any generated `SightPartData`.
@@ -135,11 +135,11 @@ Trimmed entry shape that encodes the strict-disable decision (from the dump form
 ## Further Notes
 
 - The safe save pattern is the core constraint: old parts stay listed, so the game's part-list sanity check does not delete saved guns that reference them.
-- The strict inverted range is logically sound but unverified in-game. The conservative fallback is the UCP-proven pattern: keep old scoped entries with `MaxGameStageIndex` set to the index of 1. It leaves a tiny level-1 loophole but is known-tolerated by the game.
+- The conservative range is the default and is the UCP-proven pattern: keep old scoped entries with `MaxGameStageIndex` set to the index of 1. It leaves a tiny level-1 loophole but is known-tolerated by the game. The strict inverted range is logically sound but unverified in-game and is opt-in with `--policy strict`.
 - New drops only: vendor restock and enemy respawn timing are inferred, not verified.
 - The `SMG_Sight_None` part is anomalously typed `WP_Stock` in the stock data; that anomaly is pre-existing and left unchanged.
 - UCP 5.0.4 contains one inactive sight override (the Emperor-to-Torrent alternative). It is not executed by default and does not conflict with this mod.
 - The text mod loader scans files directly in the game's `Binaries` directory and can enable multiple BLCMM files; UCP's entry has no hotfix service lock, so both can run. Load order is UCP first, then No Intrusive Scopes.
 - The repository has no glossary or ADR covering this area; domain terms are defined inline in this spec.
 - The mod is data-only; it does not add runtime code, menus, or external dependencies.
-- The README should state that if guns vanish after install, the user should restore the save backup and switch to the conservative pattern or disable the mod.
+- The README should state that if guns vanish after install, the user should restore the save backup and switch to the strict pattern or disable the mod.
