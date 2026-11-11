@@ -51,13 +51,13 @@ list's CAID value 100 and `MaxGameStageIndex` pointing at the list's CAID value
 non-scoped option left, a stock no-sight part for that weapon family is added
 with a full range.
 
-### Strict policy (default, untested in-game)
+### Strict policy (default, verified at level 1)
 
 The committed patch and `python3 generate.py` use the strict policy. It sets
 `MinGameStageIndex` to the CAID value 100 and `MaxGameStageIndex` to the CAID
-value 1, producing an empty stage range. The inverted range is logically sound
-but has **not** been verified in-game. The generator has only been checked
-statically. Back up saves before installing.
+value 1, producing an empty stage range. Level-1 starting-gun generation was
+verified in-game to have no scoped sights; higher levels were not separately
+verified, though the same range applies. Back up saves before installing.
 
 ### Conservative policy (UCP-proven fallback)
 
