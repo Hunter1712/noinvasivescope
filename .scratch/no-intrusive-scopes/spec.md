@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: implemented
 
 # No Intrusive Scopes — Spec
 
@@ -14,7 +14,7 @@ A standalone BLCMM text mod named **No Intrusive Scopes**, loaded through the st
 
 The one named weapon whose unique scope is its identity — Fremington's Edge's 25× scope — is exempt. The mod affects new generation only; existing guns keep their current scopes because no sight part definitions are changed.
 
-A deterministic generator produces the 300-plus overrides from a vendored, pinned set of BL2 object dumps. A static test at the generator seam verifies the generated patch. In-game testing is deliberately out of scope for this delivery.
+A deterministic generator produces the 300-plus overrides from a vendored, pinned set of BL2 object dumps. A static test at the generator seam verifies the generated patch. Starting-gun and full-game play were also verified manually in-game.
 
 ## User Stories
 
@@ -36,7 +36,7 @@ A deterministic generator produces the 300-plus overrides from a vendored, pinne
 16. As a player, I want a simple install and uninstall flow — copy the patch, enable or disable it in the mods menu — so I do not need to edit game files.
 17. As a player, I want a README that explains the save-safety risk and recommends backing up saves, so I do not lose gear.
 18. As a player, I want the README to name the strict default and the conservative fallback, so I can recover if something goes wrong.
-19. As a player, I want the README to list known gaps — the six missing runtime lists, the two skipped runtime lists, existing guns, and Fremington's Edge — so there are no surprises.
+19. As a player, I want the README to list known gaps — the missing and skipped runtime lists, existing guns, and Fremington's Edge — so there are no surprises.
 20. As a player, I want the mod to be a standard BLCMM file I can open and inspect, so I can see exactly what it changes.
 21. As a player, I want the patch grouped and labeled clearly in the BLCMM interface, so I can find and audit it.
 22. As a player, I want a versioned patch with a clear name and credit, so I know what I am installing and who made it.
@@ -111,12 +111,12 @@ Trimmed entry shape that encodes the default strict-disable decision (from the d
   - No `Part=None` appears inside any generated `SightPartData`.
   - The patch parses as BLCMM and the flat command section matches the XML entries.
   - Two consecutive runs produce byte-identical output.
-- **Static only:** no game launch, no save loading, no runtime verification. The README states this explicitly.
+- **Static suite plus manual verification:** the automated suite does not launch the game or load saves. Starting-gun and full-game play were verified manually with the strict patch, and the README records that.
 - **Failure behavior:** the generator should fail with a clear message if a CAID value is missing, a target list is unclassified, or a stock no-sight part is unavailable for a family.
 
 ## Out of Scope
 
-- Installing the mod into the game, launching the game, editing saves, or runtime verification.
+- Installing the mod into the game, launching the game, or editing saves.
 - Retroactively removing scopes from guns already in saves.
 - Editing sight part definitions: `bScoped`, scope meshes, zoom FOV, reticles, or related properties.
 - Replacing or merging with UCP; the mod is standalone but coexistable.
@@ -127,7 +127,6 @@ Trimmed entry shape that encodes the default strict-disable decision (from the d
 - Non-BL2 games (The Pre-Sequel, Borderlands 3, Wonderlands).
 - SDK-mod behavior, Python SDK hooks, or save editing.
 - In-game toggles, configuration menus, or per-weapon user options.
-- Fixing or validating the strict inverted range at runtime.
 - DLC content not present in the pinned dumps.
 - Launcher-specific sight replacement unless a launcher list is found to contain scoped sights.
 - Cosmetic scope-model removal for existing guns.
