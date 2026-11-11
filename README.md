@@ -4,7 +4,7 @@ A standalone Borderlands 2 text mod that stops newly generated weapons from
 rolling scoped sights. Iron sights, red dots, holograms, and no-sight options
 remain. Existing guns keep the scopes they already have.
 
-Version **1.2.0**. Credit: **ancent**. `NoIntrusiveScopes.txt` is a standard
+Version **1.2.0**. Credit: **Hunter1712**. `NoIntrusiveScopes.txt` is a standard
 BLCMM v1 file, grouped by weapon family so it can be opened and inspected.
 
 ## Install

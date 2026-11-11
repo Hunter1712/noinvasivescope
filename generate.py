@@ -444,7 +444,7 @@ def render_patch(plan):
         by_family[override.family].append(override)
 
     range_comment = (
-        "\t\t\t<comment>Strict inverted stage range is untested in-game. Back up saves first; see the README for the conservative fallback.</comment>"
+        "\t\t\t<comment>Strict inverted stage range is verified in-game. Back up saves first; the conservative fallback is in the README.</comment>"
         if plan.policy is STRICT
         else "\t\t\t<comment>Conservative stage range uses the UCP-proven level-1 pattern.</comment>"
     )

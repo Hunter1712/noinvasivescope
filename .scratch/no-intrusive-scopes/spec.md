@@ -85,7 +85,7 @@ A deterministic generator produces the 300-plus overrides from a vendored, pinne
 - **Left untouched:** the six missing runtime lists, the two runtime lists that cannot be resolved at text-mod execution time, the seven no-sight lists, the two pools with no scoped sights, fixed non-scoped named sights (Toothpick, SwordSplosion), and the three already-scopeless sniper uniques (Buffalo, Longbow, Elephant Gun).
 - **Part definitions are not edited.** No changes to `bScoped`, scope meshes, zoom FOV, reticles, or other part-property values. Therefore existing guns keep their scopes and other mods that touch part definitions are unaffected.
 - **BLCMM format:** a v1 file with BL2/offline type, default profile, a clearly named category with explanatory comments, `<code>` entries for GUI inspection, and a flat `#Commands:` section that the text mod loader executes. Both representations are generated from the same data so they cannot drift. No `#Hotfixes:` section is produced.
-- **Versioning and credit:** version 1.2.0; header credit "ancent".
+- **Versioning and credit:** version 1.2.0; header credit "Hunter1712".
 - **Determinism:** target lists, entries, and output lines are emitted in stable sorted order.
 - **No game interaction:** the delivery does not install into the game, launch it, or touch saves.
 - **Test seams:** the generator command line for end-to-end patch behavior, plus the public interfaces of the sight-data, dump-reader and planning modules for format, validation and policy behavior. The generated patch's byte identity remains the end-to-end guard.

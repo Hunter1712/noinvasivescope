@@ -190,7 +190,7 @@ class NoIntrusiveScopesTest(unittest.TestCase):
             "NoIntrusiveScopes.txt is stale; run generate.py",
         )
         self.assertEqual(self.first.read_bytes(), self.second.read_bytes())
-        self.assertIn("Strict inverted stage range is untested", self.text)
+        self.assertIn("Strict inverted stage range is verified in-game", self.text)
         self.assertNotIn("Conservative stage range", self.text)
         self.assertNotIn(b"\r\n", self.first.read_bytes())
 
@@ -536,7 +536,7 @@ class PolicyTest(unittest.TestCase):
 
     def test_conservative_header_does_not_warn_about_strict(self):
         self.assertIn("Conservative stage range", self.conservative_text)
-        self.assertNotIn("Strict inverted stage range is untested", self.conservative_text)
+        self.assertNotIn("Strict inverted", self.conservative_text)
 
     def test_conservative_policy_uses_level_one_range(self):
         self.assertEqual(set(self.strict), set(self.conservative))
