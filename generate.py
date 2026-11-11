@@ -14,7 +14,7 @@ DATA_DIR = ROOT / "data"
 DEFAULT_OUTPUT = ROOT / "NoIntrusiveScopes.txt"
 
 VERSION = "1.2.0"
-CREDIT = "ancent"
+CREDIT = "Hunter1712"
 
 DUMP_FILES = {
     "parts": "WeaponPartDefinition.dump.xz",
@@ -459,7 +459,7 @@ def render_patch(plan):
         '\t</head>',
         '\t<body>',
         f'\t\t<category name="No Intrusive Scopes v{VERSION}">',
-        f'\t\t\t<comment>Stops new BL2 weapons from generating with scoped sights. Credit: {CREDIT}</comment>',
+        f'\t\t\t<comment>Stops new BL2 weapons from generating with scoped sights. Credit: {CREDIT}.</comment>',
         '\t\t\t<comment>Iron sights, red dots, holograms, and no-sight options remain. Existing guns keep their current scopes.</comment>',
         '\t\t\t<comment>Every original sight entry stays listed so the save sanity check cannot delete existing gear.</comment>',
         range_comment,
