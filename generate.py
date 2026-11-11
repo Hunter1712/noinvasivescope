@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 DEFAULT_OUTPUT = ROOT / "NoIntrusiveScopes.txt"
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 CREDIT = "ancent"
 
 DUMP_FILES = {
@@ -346,7 +346,7 @@ class Plan:
     policy: RangePolicy
 
 
-def plan_list(path, props, scoped, known_parts, policy=CONSERVATIVE):
+def plan_list(path, props, scoped, known_parts, policy=STRICT):
     """Turn one runtime list into an override, or a named skip reason."""
     sight_data = SightData.parse(props.get("SightPartData"), path)
     parts = sight_data.parts
@@ -399,7 +399,7 @@ def plan_list(path, props, scoped, known_parts, policy=CONSERVATIVE):
     return Outcome(Override(path, family, sight_data, added_stock))
 
 
-def build_plan(policy=CONSERVATIVE):
+def build_plan(policy=STRICT):
     parts = load_dump(DATA_DIR / DUMP_FILES["parts"])
     lists = load_dump(DATA_DIR / DUMP_FILES["lists"])
     balances = load_dump(DATA_DIR / DUMP_FILES["balances"])
@@ -491,7 +491,7 @@ def render_patch(plan):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", nargs="?", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--policy", choices=sorted(POLICIES), default=CONSERVATIVE.name)
+    parser.add_argument("--policy", choices=sorted(POLICIES), default=STRICT.name)
     args = parser.parse_args(argv)
 
     plan = build_plan(POLICIES[args.policy])

@@ -190,8 +190,8 @@ class NoIntrusiveScopesTest(unittest.TestCase):
             "NoIntrusiveScopes.txt is stale; run generate.py",
         )
         self.assertEqual(self.first.read_bytes(), self.second.read_bytes())
-        self.assertIn("Conservative stage range", self.text)
-        self.assertNotIn("Strict inverted stage range is untested", self.text)
+        self.assertIn("Strict inverted stage range is untested", self.text)
+        self.assertNotIn("Conservative stage range", self.text)
         self.assertNotIn(b"\r\n", self.first.read_bytes())
 
     def test_counts_match_independent_expectation(self):
@@ -271,7 +271,7 @@ class NoIntrusiveScopesTest(unittest.TestCase):
                     if part in expect.scoped:
                         self.assertEqual(
                             written.stage_range(),
-                            (source.stage_range()[0], caid_one),
+                            (caid_hundred, caid_one),
                             path,
                         )
                     else:
@@ -327,13 +327,9 @@ class NoIntrusiveScopesTest(unittest.TestCase):
         self.assertEqual(gen.caid_index(props, 100.0, ODD), 3)
         for written in gen.SightData.parse(self.commands[ODD], ODD).entries:
             if written.part in self.expect.scoped:
-                self.assertEqual(written.stage_range(), (2, 2))
+                self.assertEqual(written.stage_range(), (3, 2))
             else:
                 self.assertEqual(written.stage_range(), (2, 3))
-
-        for written in gen.SightData.parse(self.commands[NORMAL], NORMAL).entries:
-            if written.part in self.expect.scoped:
-                self.assertEqual(written.stage_range(), (0, 0))
 
 
 class SightDataTest(unittest.TestCase):
@@ -502,7 +498,7 @@ class PlanningTest(unittest.TestCase):
 
     def test_build_plan_exposes_skip_reasons(self):
         plan = gen.build_plan()
-        self.assertIs(plan.policy, gen.CONSERVATIVE)
+        self.assertIs(plan.policy, gen.STRICT)
         self.assertEqual(len(plan.runtime), 360)
         self.assertEqual(len(plan.overrides), 306)
         reasons = {skip.path: skip.reason for skip in plan.skips}

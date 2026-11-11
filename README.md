@@ -4,7 +4,7 @@ A standalone Borderlands 2 text mod that stops newly generated weapons from
 rolling scoped sights. Iron sights, red dots, holograms, and no-sight options
 remain. Existing guns keep the scopes they already have.
 
-Version **1.1.0**. Credit: **ancent**. `NoIntrusiveScopes.txt` is a standard
+Version **1.2.0**. Credit: **ancent**. `NoIntrusiveScopes.txt` is a standard
 BLCMM v1 file, grouped by weapon family so it can be opened and inspected.
 
 ## Install
@@ -40,40 +40,40 @@ The mod rewrites generation lists only:
 - Existing gear is not re-rolled or deleted.
 
 If guns vanish or behave oddly after installing, restore the save backup, then
-either disable the mod or try the strict policy below.
+either disable the mod or try the conservative policy below.
 
 ## How it works
 
 For every edited list, the whole `SightPartData` array is replaced. Every
-original entry is kept. A scoped entry keeps its existing `MinGameStageIndex`
-and gets `MaxGameStageIndex` pointing at the list's CAID value 1. That is the
-conservative, UCP-proven pattern; it leaves a level-1 loophole. If a list would
-have no non-scoped option left, a stock no-sight part for that weapon family is
-added with a full range.
+original entry is kept. A scoped entry gets `MinGameStageIndex` pointing at the
+list's CAID value 100 and `MaxGameStageIndex` pointing at the list's CAID value
+1, producing an empty stage range at every level. If a list would have no
+non-scoped option left, a stock no-sight part for that weapon family is added
+with a full range.
 
-### Conservative policy (default, UCP-proven)
+### Strict policy (default, untested in-game)
 
-The committed patch and `python3 generate.py` use the conservative policy. For
-each scoped entry, it keeps the existing minimum and sets `MaxGameStageIndex`
-to the list's CAID index for 1. This leaves a tiny level-1 loophole but is
-known to be tolerated by the game. In these dumps, the index for 1 is `0` for
-every list except
-`GD_Aster_Weapons.SMGs.SMG_Maliwan_3_Crit:WeaponPartListCollectionDefinition_244`,
-which uses `2`.
+The committed patch and `python3 generate.py` use the strict policy. It sets
+`MinGameStageIndex` to the CAID value 100 and `MaxGameStageIndex` to the CAID
+value 1, producing an empty stage range. The inverted range is logically sound
+but has **not** been verified in-game. The generator has only been checked
+statically. Back up saves before installing.
 
-### Strict policy (untested in-game)
+### Conservative policy (UCP-proven fallback)
 
-To close the level-1 loophole, regenerate with:
+If the strict range causes problems, regenerate with the conservative policy:
 
 ```sh
-python3 generate.py --policy strict NoIntrusiveScopes-strict.txt
+python3 generate.py --policy conservative NoIntrusiveScopes-conservative.txt
 ```
 
-The strict policy sets `MinGameStageIndex` to the CAID value 100 and
-`MaxGameStageIndex` to the CAID value 1, producing an empty stage range. The
-inverted range is logically sound but has **not** been verified in-game. The
-generator has only been checked statically. Do not install this experimental
-build without a save backup.
+Copy the result to `Binaries` as usual. For each scoped entry, the conservative
+policy keeps the existing minimum and sets `MaxGameStageIndex` to the list's
+CAID index for 1. This leaves a tiny level-1 loophole but is known to be
+tolerated by the game. In these dumps, the index for 1 is `0` for every list
+except
+`GD_Aster_Weapons.SMGs.SMG_Maliwan_3_Crit:WeaponPartListCollectionDefinition_244`,
+which uses `2`.
 
 ## Coverage
 
@@ -127,9 +127,9 @@ the xz-compressed dumps in `data/`, generates both the BLCMM XML entries and the
 flat `#Commands:` section from the same data, and writes the patch.
 
 ```sh
-python3 generate.py                                                     # conservative (default)
+python3 generate.py                                                     # strict (default)
 python3 generate.py /tmp/patch.txt                                      # custom output path
-python3 generate.py --policy strict /tmp/strict.txt                     # untested strict policy
+python3 generate.py --policy conservative /tmp/conservative.txt         # UCP fallback
 ```
 
 The dumps are vendored and pinned. See [`data/README.md`](data/README.md) for
@@ -147,17 +147,17 @@ It needs no game install and checks:
 
 - The committed `NoIntrusiveScopes.txt` is byte-identical to a fresh
   `python3 generate.py` run, and two runs produce the same bytes.
-- The default output uses the conservative policy and contains no CRLF bytes.
-- Every original sight entry is kept, and every scoped entry is level-limited.
+- The default output uses the strict policy and contains no CRLF bytes.
+- Every original sight entry is kept, and every scoped entry is disabled.
 - The known edited and untouched lists, per-family counts, and added stock parts.
 - No cross-family or `Part=None` entries appear.
 - The BLCMM XML and flat `#Commands:` section agree.
 - The parser, dump reader, CAID lookup, and both policies.
 
-To inspect the experimental strict policy without touching the committed patch:
+To inspect the conservative fallback without touching the committed patch:
 
 ```sh
-python3 generate.py --policy strict /tmp/strict.txt
+python3 generate.py --policy conservative /tmp/conservative.txt
 ```
 
 In-game testing is manual and outside this suite. Back up saves, copy the patch
