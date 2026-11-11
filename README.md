@@ -4,9 +4,8 @@ A standalone Borderlands 2 text mod that stops newly generated weapons from
 rolling scoped sights. Iron sights, red dots, holograms, and no-sight options
 remain. Existing guns keep the scopes they already have.
 
-Version **1.0.0**. Credit: **ancent**. The patch is a standard BLCMM v1 file
-(`NoIntrusiveScopes.txt`) grouped by weapon family so it can be opened and
-inspected.
+Version **1.0.0**. Credit: **ancent**. `NoIntrusiveScopes.txt` is a standard
+BLCMM v1 file, grouped by weapon family so it can be opened and inspected.
 
 ## Install
 
@@ -15,13 +14,13 @@ inspected.
    to the game executable.
 3. Enable it in the text mod loader's mods menu.
 
-No game files are edited. Disable the mod in the menu, or remove the file, to
-uninstall.
+No game files are edited. To uninstall, disable the mod in the menu or remove
+the file.
 
 ## Load order
 
-- The mod is standalone and works without the Unofficial Community Patch.
-- With UCP: load **UCP first, then No Intrusive Scopes**. The loader can enable
+- The mod is standalone and works without the Unofficial Community Patch (UCP).
+- With UCP, load **UCP first, then No Intrusive Scopes**. The loader can enable
   both BLCMM files at the same time.
 - UCP 5.0.4 contains one inactive sight override (the Emperor-to-Torrent
   alternative). It is not executed by default and does not conflict.
@@ -41,7 +40,7 @@ The mod rewrites generation lists only:
 - Existing gear is not re-rolled or deleted.
 
 If guns vanish or behave oddly after installing, restore the save backup, then
-either disable the mod or switch to the conservative pattern below.
+either disable the mod or switch to the conservative policy below.
 
 ## How it works
 
@@ -52,50 +51,49 @@ list's CAID value 100 and `MaxGameStageIndex` pointing at the list's CAID value
 non-scoped option left, a stock no-sight part for that weapon family is added
 with a full range.
 
-### Strict disable (untested)
+### Strict policy (untested in-game)
 
 The inverted range above is logically sound but has **not** been verified
 in-game. The generator has only been checked statically.
 
-### Conservative fallback (UCP-proven)
+### Conservative policy (UCP-proven)
 
-If the strict range causes problems, regenerate with the fallback:
+If the strict range causes problems, regenerate with the conservative policy:
 
 ```sh
-python3 generate.py --policy conservative /tmp/NoIntrusiveScopes-conservative.txt
+python3 generate.py --policy conservative NoIntrusiveScopes-conservative.txt
 ```
 
-Copy the result to `Binaries` as usual. For each scoped entry, it keeps the
-existing minimum and sets `MaxGameStageIndex` to the list's CAID index for 1.
-This leaves a tiny level-1 loophole but is known to be tolerated by the game. In
-these dumps the index for 1 is `0` for every list except
-`GD_Aster_Weapons.SMGs.SMG_Maliwan_3_Crit:WeaponPartListCollectionDefinition_244`,
+Copy the result to `Binaries` as usual. For each scoped entry, the conservative
+policy keeps the existing minimum and sets `MaxGameStageIndex` to the list's
+CAID index for 1. This leaves a tiny level-1 loophole but is known to be
+tolerated by the game. In these dumps, the index for 1 is `0` for every list
+except `GD_Aster_Weapons.SMGs.SMG_Maliwan_3_Crit:WeaponPartListCollectionDefinition_244`,
 which uses `2`.
 
 ## Coverage
 
 Weapon balances reference 360 runtime lists; 354 exist in the pinned dumps.
+347 of those contain sight data: 40 fixed-sight lists and 307 random pools.
 
-- 347 lists have at least one sight: 40 fixed single-sight lists and 307 random
-  pools.
-- **306 lists are changed**: 303 random pools containing scoped sights plus 3
+- **306 lists are edited**: 303 random pools containing scoped sights, plus 3
   fixed named weapons (Amigo Sincero, Overcompensator, Chaude Mama).
-- 52 lists gained a stock no-sight option: 51 sniper lists
+- **54 lists are untouched**: 6 absent from the dumps, 7 with no sight data (3
+  disabled, 4 enabled but empty), 2 unresolvable at execution time, 2 pools with
+  no scoped sights, 36 fixed single-sight lists with only non-scoped sights, and
+  Fremington's Edge, which keeps its unique 25× scope.
+- 52 edited lists gained a stock no-sight part: 51 sniper lists
   (`Sniper_Sight_None_Buffalo`) and 1 shotgun list (`SG_Sight_None`).
 - 95 edited lists already had a stock `_None` entry; 159 already had iron or
   other non-scoped coverage.
-- 7 lists have no sight data and are untouched (3 disabled, 4
-  enabled-but-empty).
-- 2 pools already had no scoped sights and are untouched: `AR_Vladof_3_Rapier`
-  and `AR_Vladof_3_Hail`.
-- 36 fixed single-sight lists contain only non-scoped sights and are untouched,
-  including the Toothpick, SwordSplosion, Buffalo, Longbow, and Elephant Gun.
-- Fremington's Edge is exempt and keeps its unique 25× scope.
+- All weapon types are covered: pistols, assault rifles, shotguns, SMGs, sniper
+  rifles, and launchers. Launcher pools are edited where they contain scoped
+  sights; their non-scoped `RL_Sight_Torgue` remains, so no launcher stock
+  no-sight part is needed.
 
-All weapon types are covered: pistols, assault rifles, shotguns, SMGs, sniper
-rifles, and launchers. Launcher pools are changed where they contain scoped
-sights; their non-scoped `RL_Sight_Torgue` remains, so no launcher stock
-no-sight part is needed.
+The 36 untouched fixed lists include the Toothpick, SwordSplosion, Buffalo,
+Longbow, and Elephant Gun. The 2 untouched pools are `AR_Vladof_3_Rapier` and
+`AR_Vladof_3_Hail`, which already have no scoped sights.
 
 ## Known gaps
 
@@ -113,10 +111,6 @@ no-sight part is needed.
     — the Aquamarine gemstone sniper; new Aquamarines can still roll a scope.
   - `GD_Iris_MotorMama.Weapons.LauncherCustom:PartList` — Motor Momma's
     NPC-only launcher, not player-obtainable.
-- Seven lists have no sight data and are left alone.
-- Existing guns keep their current scopes; the mod does not retroactively
-  remove scopes from inventory.
-- Fremington's Edge keeps its unique 25× scope.
 - In-game behaviour, including vendor restock and enemy respawn timing, has not
   been tested. The mod affects new generation only.
 - Content added after the pinned 2019 dumps is not covered.
@@ -124,17 +118,17 @@ no-sight part is needed.
 
 ## Generator
 
-`generate.py` uses only the Python standard library. It reads the xz-compressed
-dumps in `data/`, generates both the BLCMM XML entries and the flat
-`#Commands:` section from the same data, and writes the patch.
+`generate.py` requires Python 3.10+ and uses only the standard library. It reads
+the xz-compressed dumps in `data/`, generates both the BLCMM XML entries and the
+flat `#Commands:` section from the same data, and writes the patch.
 
 ```sh
-python3 generate.py                 # writes NoIntrusiveScopes.txt
-python3 generate.py /tmp/patch.txt  # optional output path
-python3 generate.py --policy conservative /tmp/conservative.txt  # UCP fallback
-python3 -m unittest -v test_generate.py
+python3 generate.py                                                     # strict (default)
+python3 generate.py /tmp/patch.txt                                      # custom output path
+python3 generate.py --policy conservative /tmp/conservative.txt         # UCP fallback
+python3 -m unittest -v test_generate.py                                 # static end-to-end test
 ```
 
 The dumps are vendored and pinned. See [`data/README.md`](data/README.md) for
-the source and commit. Regeneration works offline. The test is static: it does
-not launch the game, load a save, install the mod, or modify game files.
+their source and commit. Regeneration works offline. The test does not launch
+the game, load a save, install the mod, or modify game files.
